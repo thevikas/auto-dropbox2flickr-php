@@ -16,13 +16,10 @@
  */
 
 require_once("phpFlickr.php");
-$f = fopen("apiinfo.txt","r") or die("\ncould not open file apiinfo.txt");
-$arr1 = explode(' ',fgets($f));
-fclose($f);
-$f = new phpFlickr($arr1[0],$arr1[1],true);
 
-$token = $arr1[2];
-
+$settings = parse_ini_file("settings.ini");
+$f = new phpFlickr($settings['apikey'],$settings['secret'],true);
+$token = $settings['user-token'];
 
 function doquery($sql)
 {
@@ -61,9 +58,11 @@ echo "starting...";
 #$dir = "/media/cdrive/Photos/nainital";
 #$dir = "/media/cdrive/Photos/kareri";
 #$dir = "/media/cdrive/Photos/Manali-Beas-Source";
-
 #2011-nov
-$dir = "/home/vikas/Pictures/from-Arc-1";
+# "/home/vikas/Pictures/from-Arc-1"
+
+#2012-may
+$dir = $settings['pictures-directory'];
 
 $ignored=0;
 if($handle = opendir($dir)) 
@@ -115,7 +114,7 @@ if($handle = opendir($dir))
 
         $et = time();
         $spent = $et - $st;
-        rename($filepath,"$dir/uploaded/$file");
+        rename($filepath,$settings['destination-directory'] . "/$file");
 
 	if($rt>0)
 	{

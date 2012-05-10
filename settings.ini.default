@@ -1,0 +1,6 @@
+apikey = "abc"
+secret = "def"
+user-token = "ghi-jkl"
+pictures-directory = "/home/vikas/Pictures/100MSDCF"
+destination-directory = "/home/vikas/Pictures/uploaded"
+
