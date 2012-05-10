@@ -21,6 +21,10 @@ $settings = parse_ini_file("settings.ini");
 $f = new phpFlickr($settings['apikey'],$settings['secret'],true);
 $token = $settings['user-token'];
 
+$is_public = $settings['access-public'];
+$is_friend = $settings['access-friend'];
+$is_family = $settings['access-family'];
+
 function doquery($sql)
 {
     global $myi;
@@ -103,7 +107,7 @@ if($handle = opendir($dir))
 
         $st = time();
         //sync_upload ($photo, $title = null, $description = null, $tags = null, $is_public = null, $is_friend = null, $is_family = null) {
-        $rt = $f->sync_upload ($filepath,null,               null,         null,              0,                 0,                     0);
+        $rt = $f->sync_upload ($filepath,null,               null,         null, $is_public,        $is_friend,        $is_family);
 
 
 	if(!$rt)

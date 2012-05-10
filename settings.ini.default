@@ -4,3 +4,8 @@ user-token = "ghi-jkl"
 pictures-directory = "/home/vikas/Pictures/100MSDCF"
 destination-directory = "/home/vikas/Pictures/uploaded"
 
+
+access-public = 0
+access-friend = 0
+access-family = 1
+
