@@ -17,6 +17,9 @@
 
 require_once("phpFlickr.php");
 
+define('MIN_SPACE_NEEDED_MB',100);
+
+
 $settings = parse_ini_file("settings.ini");
 $f = new phpFlickr($settings['apikey'],$settings['secret'],true);
 $token = $settings['user-token'];
@@ -24,6 +27,23 @@ $token = $settings['user-token'];
 $is_public = $settings['access-public'];
 $is_friend = $settings['access-friend'];
 $is_family = $settings['access-family'];
+
+echo "Destination Directory :" . $settings['destination-directory'];
+$space = disk_free_space($settings['destination-directory']);
+echo " (" . round($space/(1024*1024)) . " MB free space) \n";
+
+check_space($settings['destination-directory']);
+
+function check_space($dest_folder)
+{
+    $space = disk_free_space($dest_folder);
+    $left_space_MB = round($space/(1024*1024));
+    if($left_space_MB < MIN_SPACE_NEEDED_MB)
+    {
+        echo "Too little ($left_space_MB MB) space left in destination. Won't proceed\n";
+        die;
+    }
+}
 
 function doquery($sql)
 {
@@ -119,6 +139,8 @@ if($handle = opendir($dir))
         $et = time();
         $spent = $et - $st;
         rename($filepath,$settings['destination-directory'] . "/$file");
+        
+        check_space($settings['destination-directory']);
 
 	if($rt>0)
 	{
