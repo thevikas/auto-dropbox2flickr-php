@@ -9,10 +9,10 @@
      */
 
     require_once("phpFlickr.php");
-    $f = new phpFlickr("<api key>", "<secret>");
+    $f = new phpFlickr("03d5bbb351d59e3466c25d570daa1f25", "004e54115910ad63");
     
     //change this to the permissions you will need
-    $f->auth("read");
+    $f->auth("write");
     
     echo "Copy this token into your code: " . $_SESSION['phpFlickr_auth_token'];
     
