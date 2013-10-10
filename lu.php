@@ -70,7 +70,7 @@ function doquery($sql)
 
 $_SESSION['phpFlickr_auth_token'] = $token;
 
-$myi = mysqli_connect('localhost','root','tj18','flickr');
+$myi = mysqli_connect($settings['mysql_host'],$settings['mysql_user'],$settings['mysql_pass'],$settings['mysql_db']);
 if(!$myi)
     die('myi connect error');
 
@@ -89,16 +89,21 @@ echo "starting...";
 $dir = $settings['pictures-directory'];
 
 $ignored=0;
-if($handle = opendir($dir))
+if(true)
 {
     error_reporting(E_ALL);
     ini_set('display_errors', 'on');
     $sorted_files = array();
     /* This is the correct way to loop over the directory. */
-    while (false !== ($file = readdir($handle)))
+    /*while (false !== ($file = readdir($handle)))
     {
         $sorted_files[] = $file;
-    }
+    }*/
+    $test2 = `/usr/bin/find '$dir'`;
+    $sorted_files = explode("\n",$test2);
+    echo "found . " . count($sorted_files);
+    
+    echo "found files ($dir):" . count($sorted_files) . "\n";
     //print_r($sorted_files);
     sort($sorted_files);
 
@@ -117,27 +122,36 @@ if($handle = opendir($dir))
         }
         if(!strstr(strtoupper($file),"JPG"))
             continue;
+        if(strstr(strtoupper($file),"JPG.UPLOADED") !== FALSE)
+            continue;
         if(strstr($file,"original"))
         {
             echo "$file ignored...\n";
             continue;
         }
-
+        
         //if found, ignore it
-
-        $filepath = "$dir/$file";
-        if(is_dir($filepath)) continue;
-
+        if(!file_exists($file))
+            $filepath = "$dir/$file";
+        else
+            $filepath = $file;
+        
+        if(is_dir($filepath)) 
+            continue;
         echo "uploading $filepath...";
-
         $ll = getlonglat($filepath);
 
 
 
         $st = time();
+        
+        if(file_exists($filepath . ".uploaded"))
+        {
+            echo ",file already uploaded\n";
+            continue;
+        }
         //sync_upload ($photo, $title = null, $description = null, $tags = null, $is_public = null, $is_friend = null, $is_family = null) {
         $rt = $f->sync_upload ($filepath,null,               null,         null, $is_public,        $is_friend,        $is_family);
-
 
         if(!$rt)
         {
@@ -147,7 +161,25 @@ if($handle = opendir($dir))
 
         $et = time();
         $spent = $et - $st;
-        rename($filepath,$settings['destination-directory'] . "/$file");
+        if(file_exists($filepath . ".uploaded"))
+        {
+            echo ",file already uploaded\n";
+            continue;
+        }
+        else if('move' == $settings['after_copy'])
+        {
+            rename($filepath,$settings['destination-directory'] . "/$file");
+            echo ",file moved";
+        }
+        else if('resize' == $settings['after_copy'])
+        {
+            echo ",resizing from " . filesize($filepath);
+            resizeimage($filepath);
+            file_put_contents($filepath . ".uploaded","uploaded on " . date('Y-m-d H:i:s'));
+            clearstatcache();
+            
+            echo " to " . filesize($filepath) . " ";
+        }
 
         check_space($settings['destination-directory']);
 
@@ -187,6 +219,25 @@ function s2($v)
 {
     $ss = explode('/',$v);
     return $ss[0];
+}
+
+function resizeimage($filename)
+{
+    //
+    $image = new Imagick( $filename );
+    if($image)
+    {
+        $height=$image->getImageHeight();
+        $width=$image->getImageWidth();
+    
+        if ($height > $width)
+            $image->scaleImage( 600 , 800 ,  true );
+        else
+            $image->scaleImage( 800 , 600 , true );
+    
+        $image->writeImage( $filename );
+        $image->destroy();
+    }
 }
 
 ?>
