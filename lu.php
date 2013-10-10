@@ -87,7 +87,8 @@ echo "starting...";
 
 #2012-may
 $dir = $settings['pictures-directory'];
-
+$uploaded_files=0;
+$uploaded_time=0;
 $ignored=0;
 if(true)
 {
@@ -191,7 +192,11 @@ if(true)
                 echo "geotagged (" . $ll['GPSLatitude'] . "," . $ll['GPSLongitude'] . ")...";
             }
         }
-        echo " upload took $spent seconds\n";
+        
+        $uploaded_time += $spent;
+        $uploaded_files++;
+        $avg = round($uploaded_time/$uploaded_files);
+        echo " upload $spent s ($avg s/file)\n";
     }
 
 }
