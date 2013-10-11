@@ -89,7 +89,7 @@ echo "starting...";
 $dir = $settings['pictures-directory'];
 $uploaded_files=0;
 $uploaded_time=0;
-$ignored=0;
+$savedsize = $ignored=0;
 if(true)
 {
     error_reporting(E_ALL);
@@ -117,7 +117,7 @@ if(true)
         if($rs)
         {
             //print_r($rs);
-            echo $ff[0] . " already uploaded ($ignored ignored).\n";
+            echo $ff[0] . " already uploaded ($ignored ignored).\r";
             $ignored++;
             continue;
         }
@@ -148,7 +148,8 @@ if(true)
         
         if(file_exists($filepath . ".uploaded"))
         {
-            echo ",file already uploaded\n";
+            echo ",file already uploaded ($ignored ignored)\r";
+            $ignored++;
             continue;
         }
         //sync_upload ($photo, $title = null, $description = null, $tags = null, $is_public = null, $is_friend = null, $is_family = null) {
@@ -174,12 +175,16 @@ if(true)
         }
         else if('resize' == $settings['after_copy'])
         {
-            echo ",resizing from " . filesize($filepath);
+            $oldsize = filesize($filepath);
+            echo ",resizing from $oldsize";
             resizeimage($filepath);
             file_put_contents($filepath . ".uploaded","uploaded on " . date('Y-m-d H:i:s'));
             clearstatcache();
+            $newsize = filesize($filepath);
             
-            echo " to " . filesize($filepath) . " ";
+            echo " to $newsize ";
+            $savedsize += ($oldsize - $newsize);            
+            echo "total space saved: " . round($savedsize/(1024*1024)) . "Mb ";
         }
 
         check_space($settings['destination-directory']);
