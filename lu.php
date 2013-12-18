@@ -108,6 +108,8 @@ if(true)
     //print_r($sorted_files);
     sort($sorted_files);
 
+	$total_files = count($sorted_files);
+
     foreach($sorted_files as $file)
     {
         //search the file in db
@@ -117,7 +119,7 @@ if(true)
         if($rs)
         {
             //print_r($rs);
-            echo $ff[0] . " already uploaded ($ignored ignored).\r";
+            echo substr($ff[0],0,30) . " already uploaded ($ff ignored).\r";
             $ignored++;
             continue;
         }
@@ -139,7 +141,9 @@ if(true)
         
         if(is_dir($filepath)) 
             continue;
-        echo "uploading $filepath...";
+		
+		$filepath_strip = substr($filepath,-60);
+        echo "uploading $filepath_strip...";
         $ll = getlonglat($filepath);
 
 
@@ -148,7 +152,8 @@ if(true)
         
         if(file_exists($filepath . ".uploaded"))
         {
-            echo ",file already uploaded ($ignored ignored)\r";
+			$pc = round(100*($ignored/$total_files));
+            echo ",file already uploaded ($ignored/$total_files $pc% ignored)\r";
             $ignored++;
             continue;
         }
