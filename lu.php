@@ -1,4 +1,3 @@
-doq
 <?php
 #202.56.215.54, 202.54.215.55
 /* Last updated with phpFlickr 1.3.2
@@ -17,20 +16,108 @@ doq
 
 require_once("phpFlickr.php");
 
+interface client
+{
+	public function setAllFilesCount();
+	public function IgnoreFile();
+	public function uploadDone($spent,$avg);
+	public function uploadFailed();
+	public function totalFiles($ctr);
+	public function starting();
+	public function uploadingFile($filepath);
+	public function alreadyUploaded($ignored,$total_files);
+	public function setFreeSpace($space);
+	public function resizingFromTo($from,$to,$saved);
+	public function setDestinationDirectory($dirname);
+}
+
+class ClientConsole implements client
+{
+	public function setAllFilesCount()
+	{
+
+	}
+	public function IgnoreFile()
+	{
+
+	}
+
+	public function uploadDone($spent,$avg)
+	{
+        echo " upload $spent s ($avg s/file)\n";
+
+	}
+
+	public function uploadFailed()
+	{
+        echo "Failed.\n";
+	}
+
+	public function totalFiles($ctr)
+	{
+	    echo "found . " . $ctr;
+	}
+	public function starting()
+	{
+		echo "starting...";
+	}
+
+	public function uploadingFile($filepath)
+	{
+		$filepath_strip = substr($filepath,-60);
+        echo "#uploading $filepath_strip...";
+	}
+
+	public function alreadyUploaded($ignored,$total_files)
+	{
+		$pc = round(100*($ignored/$total_files));
+		echo ",#file already uploaded ($ignored/$total_files $pc% ignored)\n";
+	}
+
+	public function setFreeSpace($space)
+	{
+		echo "# (" . round($space/(1024*1024)) . " MB free space) \n";
+	}
+
+	public function resizingFromTo($from,$to,$saved)
+	{
+		echo "#resizing $from to $to, total space saved: " . round($saved/(1024*1024)) . "Mb ";
+	}
+	public function setDestinationDirectory($dirname)
+	{
+		echo "#Destination Directory :" . $dirname;
+	}
+}
+
+/**
+ * @see http://devzone.zend.com/173/using-ncurses-in-php/
+ */
+class ClientNcurses //implements client
+{
+	public function IgnoreFile()
+	{
+
+	}
+}
+
+$client = new ClientConsole();
+
+
 define('MIN_SPACE_NEEDED_MB',100);
 
 
 $settings = parse_ini_file("settings.ini");
-$f = new phpFlickr($settings['apikey'],$settings['secret'],true);
+$f = new phpFlickr($settings['apikey'],$settings['secret'],false);
 $token = $settings['user-token'];
 
 $is_public = $settings['access-public'];
 $is_friend = $settings['access-friend'];
 $is_family = $settings['access-family'];
 
-echo "Destination Directory :" . $settings['destination-directory'];
+$client->setDestinationDirectory($settings['destination-directory']);
 $space = disk_free_space($settings['destination-directory']);
-echo " (" . round($space/(1024*1024)) . " MB free space) \n";
+
+$client->setFreeSpace($space);
 
 check_space($settings['destination-directory']);
 
@@ -75,7 +162,7 @@ if(!$myi)
     die('myi connect error');
 
 
-echo "starting...";
+$client->starting();
 
 #$dir = "/media/cdrive/Photos/triund3";
 #$dir = "/media/cdrive/Photos/china_island";
@@ -102,9 +189,9 @@ if(true)
     }*/
     $test2 = `/usr/bin/find '$dir'`;
     $sorted_files = explode("\n",$test2);
-    echo "found . " . count($sorted_files);
-    
-    echo "found files ($dir):" . count($sorted_files) . "\n";
+	$client->totalFiles(count($sorted_files));
+
+    //echo "found files ($dir):" . count($sorted_files) . "\n";
     //print_r($sorted_files);
     sort($sorted_files);
 
@@ -123,37 +210,35 @@ if(true)
             $ignored++;
             continue;
         }
-        if(!strstr(strtoupper($file),"JPG"))
+        if(!strstr(strtoupper($file),"JPG") && !strstr(strtoupper($file),'MP4') && !strstr(strtoupper($file),'MOV'))
             continue;
-        if(strstr(strtoupper($file),"JPG.UPLOADED") !== FALSE)
+        if(strstr(strtoupper($file),"JPG.UPLOADED") !== FALSE || strstr(strtoupper($file),"MOV.UPLOADED") !== FALSE)
             continue;
         if(strstr($file,"original"))
         {
             echo "$file ignored...\n";
             continue;
         }
-        
+
         //if found, ignore it
         if(!file_exists($file))
             $filepath = "$dir/$file";
         else
             $filepath = $file;
-        
-        if(is_dir($filepath)) 
+
+        if(is_dir($filepath))
             continue;
-		
-		$filepath_strip = substr($filepath,-60);
-        echo "uploading $filepath_strip...";
+
+		$client->uploadingFile($filepath);
         $ll = getlonglat($filepath);
 
 
 
         $st = time();
-        
+
         if(file_exists($filepath . ".uploaded"))
         {
-			$pc = round(100*($ignored/$total_files));
-            echo ",file already uploaded ($ignored/$total_files $pc% ignored)\r";
+			$client->alreadyUploaded($ignored,$total_files);
             $ignored++;
             continue;
         }
@@ -162,7 +247,7 @@ if(true)
 
         if(!$rt)
         {
-            echo "Failed.\n";
+			$client->uploadFailed();
             continue;
         }
 
@@ -181,15 +266,12 @@ if(true)
         else if('resize' == $settings['after_copy'])
         {
             $oldsize = filesize($filepath);
-            echo ",resizing from $oldsize";
-            resizeimage($filepath);
+	    resizeimage($filepath);
             file_put_contents($filepath . ".uploaded","uploaded on " . date('Y-m-d H:i:s'));
             clearstatcache();
             $newsize = filesize($filepath);
-            
-            echo " to $newsize ";
-            $savedsize += ($oldsize - $newsize);            
-            echo "total space saved: " . round($savedsize/(1024*1024)) . "Mb ";
+            $savedsize += ($oldsize - $newsize);
+			$client->resizingFromTo($oldsize,$newsize,$savedsize);
         }
 
         check_space($settings['destination-directory']);
@@ -202,11 +284,11 @@ if(true)
                 echo "geotagged (" . $ll['GPSLatitude'] . "," . $ll['GPSLongitude'] . ")...";
             }
         }
-        
+
         $uploaded_time += $spent;
         $uploaded_files++;
         $avg = round($uploaded_time/$uploaded_files);
-        echo " upload $spent s ($avg s/file)\n";
+		$client->uploadDone($spent,$avg);
     }
 
 }
@@ -215,6 +297,9 @@ if(true)
 function getlonglat($filename)
 {
     $long = array();
+    if(!strstr(strtoupper($filename),'JPG'))
+        return false;
+
     $ar = exif_read_data($filename);
     foreach($ar as $key=>$v)
     {
@@ -238,18 +323,21 @@ function s2($v)
 
 function resizeimage($filename)
 {
+    if(!strstr(strtoupper($filename),'JPG'))
+        return false;
+    
     //
     $image = new Imagick( $filename );
     if($image)
     {
         $height=$image->getImageHeight();
         $width=$image->getImageWidth();
-    
+
         if ($height > $width)
             $image->scaleImage( 600 , 800 ,  true );
         else
             $image->scaleImage( 800 , 600 , true );
-    
+
         $image->writeImage( $filename );
         $image->destroy();
     }
