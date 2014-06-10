@@ -15,96 +15,16 @@
  */
 
 require_once("phpFlickr.php");
-
-interface client
-{
-	public function setAllFilesCount();
-	public function IgnoreFile();
-	public function uploadDone($spent,$avg);
-	public function uploadFailed();
-	public function totalFiles($ctr);
-	public function starting();
-	public function uploadingFile($filepath);
-	public function alreadyUploaded($ignored,$total_files);
-	public function setFreeSpace($space);
-	public function resizingFromTo($from,$to,$saved);
-	public function setDestinationDirectory($dirname);
-}
-
-class ClientConsole implements client
-{
-	public function setAllFilesCount()
-	{
-
-	}
-	public function IgnoreFile()
-	{
-
-	}
-
-	public function uploadDone($spent,$avg)
-	{
-        echo " upload $spent s ($avg s/file)\n";
-
-	}
-
-	public function uploadFailed()
-	{
-        echo "Failed.\n";
-	}
-
-	public function totalFiles($ctr)
-	{
-	    echo "found . " . $ctr;
-	}
-	public function starting()
-	{
-		echo "starting...";
-	}
-
-	public function uploadingFile($filepath)
-	{
-		$filepath_strip = substr($filepath,-60);
-        echo "#uploading $filepath_strip...";
-	}
-
-	public function alreadyUploaded($ignored,$total_files)
-	{
-		$pc = round(100*($ignored/$total_files));
-		echo ",#file already uploaded ($ignored/$total_files $pc% ignored)\n";
-	}
-
-	public function setFreeSpace($space)
-	{
-		echo "# (" . round($space/(1024*1024)) . " MB free space) \n";
-	}
-
-	public function resizingFromTo($from,$to,$saved)
-	{
-		echo "#resizing $from to $to, total space saved: " . round($saved/(1024*1024)) . "Mb ";
-	}
-	public function setDestinationDirectory($dirname)
-	{
-		echo "#Destination Directory :" . $dirname;
-	}
-}
-
-/**
- * @see http://devzone.zend.com/173/using-ncurses-in-php/
- */
-class ClientNcurses //implements client
-{
-	public function IgnoreFile()
-	{
-
-	}
-}
+require_once("interfaceClient.php");
+require_once("clsClientConsole.php");
+require_once("clsClientCurses.php");
 
 $client = new ClientConsole();
 
-
 define('MIN_SPACE_NEEDED_MB',100);
 
+
+$movfile = 'MOVZZ';
 
 $settings = parse_ini_file("settings.ini");
 $f = new phpFlickr($settings['apikey'],$settings['secret'],false);
@@ -210,9 +130,9 @@ if(true)
             $ignored++;
             continue;
         }
-        if(!strstr(strtoupper($file),"JPG") && !strstr(strtoupper($file),'MP4') && !strstr(strtoupper($file),'MOV'))
+        if(!(strstr(strtoupper($file),"JPG") || strstr(strtoupper($file),"JPEG")) &&  !strstr(strtoupper($file),$movfile))
             continue;
-        if(strstr(strtoupper($file),"JPG.UPLOADED") !== FALSE || strstr(strtoupper($file),"MOV.UPLOADED") !== FALSE)
+        if(strstr(strtoupper($file),"JPG.UPLOADED") !== FALSE || strstr(strtoupper($file),"JPEG.UPLOADED") !== FALSE || strstr(strtoupper($file),"MOV.UPLOADED") !== FALSE)
             continue;
         if(strstr($file,"original"))
         {
@@ -266,7 +186,7 @@ if(true)
         else if('resize' == $settings['after_copy'])
         {
             $oldsize = filesize($filepath);
-	    resizeimage($filepath);
+	        resizeimage($filepath);
             file_put_contents($filepath . ".uploaded","uploaded on " . date('Y-m-d H:i:s'));
             clearstatcache();
             $newsize = filesize($filepath);
@@ -323,9 +243,9 @@ function s2($v)
 
 function resizeimage($filename)
 {
-    if(!strstr(strtoupper($filename),'JPG'))
+    if(!strstr(strtoupper($filename),'JPG') && !strstr(strtoupper($filename),'JPEG'))
         return false;
-    
+
     //
     $image = new Imagick( $filename );
     if($image)
