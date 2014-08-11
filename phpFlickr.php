@@ -23,9 +23,9 @@ if ( !class_exists('phpFlickr') ) {
 		var $api_key;
 		var $secret;
 
-		var $rest_endpoint = 'http://api.flickr.com/services/rest/';
-		var $upload_endpoint = 'http://api.flickr.com/services/upload/';
-		var $replace_endpoint = 'http://api.flickr.com/services/replace/';
+		var $rest_endpoint = 'https://api.flickr.com/services/rest/';
+		var $upload_endpoint = 'https://api.flickr.com/services/upload/';
+		var $replace_endpoint = 'https://api.flickr.com/services/replace/';
 		var $req;
 		var $response;
 		var $parsed_response;
