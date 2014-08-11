@@ -19,7 +19,7 @@ require_once("interfaceClient.php");
 require_once("clsClientConsole.php");
 require_once("clsClientCurses.php");
 
-$client = new ClientConsole();
+$client = new ClientNcurses();
 
 define('MIN_SPACE_NEEDED_MB',100);
 
@@ -164,9 +164,9 @@ if(true)
         }
         //sync_upload ($photo, $title = null, $description = null, $tags = null, $is_public = null, $is_friend = null, $is_family = null) {
         $rt = $f->sync_upload ($filepath,null,               null,         null, $is_public,        $is_friend,        $is_family);
-
         if(!$rt)
         {
+			print_r($f);
 			$client->uploadFailed();
             continue;
         }
