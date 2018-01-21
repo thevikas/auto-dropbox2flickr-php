@@ -16,10 +16,15 @@
 
 require_once("phpFlickr.php");
 require_once("interfaceClient.php");
-require_once("clsClientConsole.php");
-require_once("clsClientCurses.php");
+require_once("ClientConsole.php");
 
-$client = new ClientNcurses();
+if(function_exists('ncurses_init'))
+{
+    require_once("ClientCurses.php");
+    $client = new ClientNcurses();
+}
+else
+    $client = new ClientConsole();
 
 define('MIN_SPACE_NEEDED_MB',100);
 
@@ -35,6 +40,9 @@ $is_friend = $settings['access-friend'];
 $is_family = $settings['access-family'];
 
 $client->setDestinationDirectory($settings['destination-directory']);
+if(!file_exists($settings['destination-directory']))
+    throw new Exception("Destination directory not found");
+
 $space = disk_free_space($settings['destination-directory']);
 
 $client->setFreeSpace($space);
@@ -64,23 +72,32 @@ function doquery($sql)
     return $r;
 }
 
-#for - first time account authentication
-#$r = $f->auth2("write");
-#echo $r . "\n";
-#die;
+$mode = 3;
 
-#the frob that was granted access
-#$frob = "72157623321360871-6875d6cb3e8d800e-543758";
-#$r = $f->auth_getToken($frob);
-#print_r($r);
-#die;
-
-$_SESSION['phpFlickr_auth_token'] = $token;
+if ($mode == 1)
+{
+    // for - first time account authentication
+    $r = $f->getRequestToken('');
+    // $r = $f->auth("write",false);
+     echo $r . "\n";
+     die;
+}
+else if ($mode == 2)
+{
+    // the frob that was granted access
+    $r = $f->getAccessToken ( 'ZYZYZY' );
+    print_r ( $r );
+    die ();
+}
+else if($mode == 3)
+{
+    $f->setOauthToken($settings['token2'],$settings['secret2']);
+}
+//$_SESSION['phpFlickr_auth_token'] = $token;
 
 $myi = mysqli_connect($settings['mysql_host'],$settings['mysql_user'],$settings['mysql_pass'],$settings['mysql_db']);
 if(!$myi)
     die('myi connect error');
-
 
 $client->starting();
 
